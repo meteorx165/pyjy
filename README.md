@@ -13,7 +13,7 @@ client:
 
     from client import PyjyClient
     
-    cli = PyjyClient('0.0.0.0', 1234)
+    cli = PyjyClient('127.0.0.1', 1234)
     
     def add(x, y):
         return x + y
