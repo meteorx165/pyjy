@@ -21,7 +21,7 @@ client:
     # will print 3
     print cli.execute(add, args=[1, 2])
 
-client use multi servers:
+client use multi servers(multithreading is supported):
 
     from client import PyjyClusterClient
     
