@@ -20,3 +20,15 @@ client:
     
     # will print 3
     print cli.execute(add, args=[1, 2])
+
+client use multi servers:
+
+    from client import PyjyClusterClient
+    
+    cluster = PyjyClusterClient([('hostA', 1234), ('hostB', 1234), ('hostC', 1234)])
+
+    def add(x, y):
+        return x + y
+    
+    # will print 3
+    print cli.execute(add, args=[1, 2])
