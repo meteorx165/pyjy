@@ -1,5 +1,5 @@
 # pyjy
-a python server can execute function(closure) remotely.
+a python server can execute function(closure) remotely on remote cluster with simple load balancer.
 
 <img src="https://raw.githubusercontent.com/meteorx165/pyjy/master/beethoven.jpg"></img>
 
