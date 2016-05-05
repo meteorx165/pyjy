@@ -4,7 +4,7 @@ Can execute python function on remote server/cluster with simple load balancer.
 TODO list:
 
 1. Replace multithreading implementation with multiprocessing to achieve real multi-core on server side;
-2. Integrate with some external storages like Redis/HDFS, to avoid transfering huge input data on network repeatly.
+2. Integrate with some external storages like Redis/HDFS, to avoid transferring huge input data on network repeatly.
 
 
 <img src="https://raw.githubusercontent.com/meteorx165/pyjy/master/beethoven.jpg"></img>
