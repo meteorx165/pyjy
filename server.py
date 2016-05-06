@@ -8,6 +8,7 @@ import subprocess
 import threading
 import common
 import cloudpickle
+import os
 
 class PyjyServer(object):
 
@@ -59,16 +60,47 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
         sock.sendall(send_data)
 
     def do_execute(self, sock):
-        req_header = sock.recv(24)
-        func_len, func_args_len, func_kwargs_len = struct.unpack('qqq', req_header)
+        req_header = sock.recv(32)
+        func_len, func_args_len, func_kwargs_len, bits = struct.unpack('qqqq', req_header)
         func = sock.recv(func_len)
         func_args = sock.recv(func_args_len)
         func_kwargs = sock.recv(func_kwargs_len)
+        is_fork = bits & 0x1
 
         func = cloudpickle.loads(func)
-        result = func(*cloudpickle.loads(func_args), **cloudpickle.loads(func_kwargs))
+        func_args = cloudpickle.loads(func_args)
+        func_kwargs = cloudpickle.loads(func_kwargs)
 
-        send_data = cloudpickle.dumps(result)
+        if not is_fork:
+            result = func(*func_args, **func_kwargs)
+            ser_result = cloudpickle.dumps(result)
+        else:
+            rd, wr = os.pipe()
+            pid = os.fork()
+            if pid == 0: # child
+                result = func(*func_args, **func_kwargs)
+                ser_result = cloudpickle.dumps(result)
+                os.write(wr, struct.pack('q', len(ser_result)))
+                i = 0
+                while i < len(ser_result):
+                    i += os.write(wr, ser_result[i:])
+                # avoid exception
+                os._exit(0)
+            else: # parent
+                ser_len = struct.unpack('q', os.read(rd, 8))[0]
+                buf = []
+                read_len = 0
+                while read_len < ser_len:
+                    ret = os.read(rd, 1024)
+                    if not ret:
+                        break
+                    buf.append(ret)
+                    read_len += len(ret)
+                ser_result = ''.join(buf)
+                os.close(rd)
+                os.close(wr)
+
+        send_data = ser_result
         send_data_len = len(send_data)
         sock.sendall(struct.pack('q', send_data_len))
         sock.sendall(send_data)

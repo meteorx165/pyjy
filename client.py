@@ -20,11 +20,22 @@ class PyjyClusterClient(object):
         def _update_stat(cluster):
             while True:
                 cluster.update_stat()
-                time.sleep(5)
+                time.sleep(1)
 
         update_th = threading.Thread(target=_update_stat, args=(self, ))
         update_th.setDaemon(True)
         update_th.start()
+
+    def get_stat(self):
+        free, total = 0, 0
+        for cli in self.clients:
+            free += cli.free_slot
+            total += cli.total_slot
+        return free, total
+
+    def is_busy(self):
+        free, total = self.get_stat()
+        return free >= total * 0.9
 
     def update_stat(self):
         for cli in self.clients:
@@ -34,23 +45,25 @@ class PyjyClusterClient(object):
                 cli.free_slot = stat['free_slot']
                 cli.last_ban = None
             except:
+                cli.total_slot = 0
+                cli.free_slot = 0
                 cli.last_ban = datetime.datetime.now()
 
     def print_stat(self):
+        print '=' * 10, 'Stat', '=' * 10
         for cli in self.clients:
-            print '%s:%s %d/%d' % (cli.host, cli.port, cli.free_slot, cli.total_slot), 
-        print
+            print '%s:%s %d/%d' % (cli.host, cli.port, cli.free_slot, cli.total_slot)
 
-    def execute(self, func, args=None, kwargs={}, max_retry=10, sleep=1.0):
+    def execute(self, func, args=None, kwargs={}, is_fork=False, max_retry=10, sleep=1.0):
         for i in xrange(max_retry):
             try:
-                return self.execute_oneshot(func, args, kwargs)
+                return self.execute_oneshot(func, args, kwargs, is_fork)
             except:
                 time.sleep(1)
                 pass
         return self.execute_oneshot(func, args, kwargs)
 
-    def execute_oneshot(self, func, args=None, kwargs={}):
+    def execute_oneshot(self, func, args=None, kwargs={}, is_fork=False):
         avail_clients = [cli for cli in self.clients if cli.last_ban is None]
         avail_clients.sort(key = lambda cli: -cli.free_slot)
         choosed = avail_clients[:int(len(avail_clients) * 0.2 + 1.0)]
@@ -58,7 +71,7 @@ class PyjyClusterClient(object):
         cli = choosed[0]
         try:
             cli.free_slot -= 1
-            return cli.execute(func, args, kwargs)
+            return cli.execute(func, args, kwargs, is_fork)
         except Exception as e:
             cli.last_ban = datetime.datetime.now()
             raise
@@ -71,12 +84,13 @@ class PyjyClient(object):
         self.host = host
         self.port = port
 
-    def execute(self, func, args=None, kwargs={}):
+    def execute(self, func, args=None, kwargs={}, is_fork=False):
         func = cloudpickle.dumps(func)
         func_args = cloudpickle.dumps(args)
         func_kwargs = cloudpickle.dumps(kwargs)
+        bits = (0x1 * is_fork)
 
-        send_data = struct.pack('qqqq', 1, len(func), len(func_args), len(func_kwargs)) \
+        send_data = struct.pack('qqqqq', 1, len(func), len(func_args), len(func_kwargs), bits) \
                 + func + func_args + func_kwargs
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
