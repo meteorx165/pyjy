@@ -1,10 +1,10 @@
-import marshal
 import socket
 import struct
 import datetime
 import threading
 import time
 import random
+import cloudpickle
 
 class PyjyClusterClient(object):
 
@@ -72,13 +72,12 @@ class PyjyClient(object):
         self.port = port
 
     def execute(self, func, args=None, kwargs={}):
-        func_code = marshal.dumps(func.func_code)
-        func_closure = marshal.dumps(func.func_closure)
-        func_args = marshal.dumps(args)
-        func_kwargs = marshal.dumps(kwargs)
+        func = cloudpickle.dumps(func)
+        func_args = cloudpickle.dumps(args)
+        func_kwargs = cloudpickle.dumps(kwargs)
 
-        send_data = struct.pack('qqqqq', 1, len(func_code), len(func_closure), len(func_args), len(func_kwargs)) \
-                + func_code + func_closure + func_args + func_kwargs
+        send_data = struct.pack('qqqq', 1, len(func), len(func_args), len(func_kwargs)) \
+                + func + func_args + func_kwargs
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((self.host, self.port))
@@ -97,7 +96,7 @@ class PyjyClient(object):
         sock.close()
         recv_data = ''.join(recv_buf)
 
-        return marshal.loads(recv_data)
+        return cloudpickle.loads(recv_data)
     
     def stat(self):
         send_data = struct.pack('q', 2)
@@ -119,4 +118,4 @@ class PyjyClient(object):
         sock.close()
         recv_data = ''.join(recv_buf)
 
-        return marshal.loads(recv_data)
+        return cloudpickle.loads(recv_data)

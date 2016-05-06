@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import marshal
 import struct
 import types
 import socket
@@ -8,6 +7,7 @@ import SocketServer
 import subprocess
 import threading
 import common
+import cloudpickle
 
 class PyjyServer(object):
 
@@ -53,23 +53,22 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
         result['free_slot'] = free_slot_num
         result['total_slot'] = self.server.worker_num
 
-        send_data = marshal.dumps(result)
+        send_data = cloudpickle.dumps(result)
         send_data_len = len(send_data)
         sock.sendall(struct.pack('q', send_data_len))
         sock.sendall(send_data)
 
     def do_execute(self, sock):
-        req_header = sock.recv(32)
-        func_code_len, func_closure_len, func_args_len, func_kwargs_len = struct.unpack('qqqq', req_header)
-        func_code = sock.recv(func_code_len)
-        func_closure = sock.recv(func_closure_len)
+        req_header = sock.recv(24)
+        func_len, func_args_len, func_kwargs_len = struct.unpack('qqq', req_header)
+        func = sock.recv(func_len)
         func_args = sock.recv(func_args_len)
         func_kwargs = sock.recv(func_kwargs_len)
 
-        func = types.FunctionType(marshal.loads(func_code), globals(), "fff", closure=marshal.loads(func_closure))
-        result = func(*marshal.loads(func_args), **marshal.loads(func_kwargs))
+        func = cloudpickle.loads(func)
+        result = func(*cloudpickle.loads(func_args), **cloudpickle.loads(func_kwargs))
 
-        send_data = marshal.dumps(result)
+        send_data = cloudpickle.dumps(result)
         send_data_len = len(send_data)
         sock.sendall(struct.pack('q', send_data_len))
         sock.sendall(send_data)
