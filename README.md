@@ -41,6 +41,8 @@ client use multi servers(multithreading is supported):
     # will print 3
     print cli.execute(add, args=[1, 2])
     
+broadcast variable to cluster:
+    
     # broadcast variable to all nodes
     ref = cluster.broadcast([1, 2, 3])
     def foo(a):
