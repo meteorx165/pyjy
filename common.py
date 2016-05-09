@@ -19,3 +19,15 @@ class Sem(object):
 
     def value(self):
         return self.counter
+
+
+def sock_recv(sock, length):
+    buf = []
+    rd = 0
+    while rd < length:
+        s = sock.recv(length - rd)
+        if len(s) == 0:
+            break
+        buf.append(s)
+        rd += len(s)
+    return ''.join(buf)

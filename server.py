@@ -35,7 +35,7 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
 
     def handle(self):
         sock = self.connection
-        req_type = struct.unpack('l', sock.recv(8))[0]
+        req_type = struct.unpack('l', common.sock_recv(sock, 8))[0]
 
         if req_type == 1:
             try:
@@ -60,11 +60,11 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
         sock.sendall(send_data)
 
     def do_execute(self, sock):
-        req_header = sock.recv(32)
+        req_header = common.sock_recv(sock, 32)
         func_len, func_args_len, func_kwargs_len, bits = struct.unpack('qqqq', req_header)
-        func = sock.recv(func_len)
-        func_args = sock.recv(func_args_len)
-        func_kwargs = sock.recv(func_kwargs_len)
+        func = common.sock_recv(sock, func_len)
+        func_args = common.sock_recv(sock, func_args_len)
+        func_kwargs = common.sock_recv(sock, func_kwargs_len)
         is_fork = bits & 0x1
 
         func = cloudpickle.loads(func)
