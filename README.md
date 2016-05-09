@@ -3,8 +3,8 @@ A lightweight Python remote execution framework, can execute python function on 
 
 TODO list:
 
-1. Add async_execute() to PyjyClient/PyjyClusterClient;
-2. Integrate with some external storages like Redis/HDFS, to avoid transferring huge input data on network repeatly.
+1. add async_execute() to PyjyClient/PyjyClusterClient;
+2. let broadcasted variable can be removed on server;
 
 
 <img src="https://raw.githubusercontent.com/meteorx165/pyjy/master/beethoven.jpg"></img>
