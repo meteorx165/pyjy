@@ -5,6 +5,7 @@ import threading
 import time
 import random
 import cloudpickle
+import common
 
 class PyjyClusterClient(object):
 
@@ -36,6 +37,12 @@ class PyjyClusterClient(object):
     def is_busy(self):
         free, total = self.get_stat()
         return free >= total * 0.9
+
+    def broadcast(self, value):
+        var = common.BroadcastVariable.create(value)
+        for cli in self.clients:
+            cli.send_broadcast(var)
+        return var.ref()
 
     def update_stat(self):
         for cli in self.clients:
@@ -99,17 +106,7 @@ class PyjyClient(object):
 
         recv_header = sock.recv(8)
         recv_data_len = struct.unpack('q', recv_header)[0]
-        recv_buf = []
-        read_len = 0
-        while read_len < recv_data_len:
-            data = sock.recv(1024)
-            if not data:
-                break
-            read_len += len(data)
-            recv_buf.append(data)
-        sock.close()
-        recv_data = ''.join(recv_buf)
-
+        recv_data = common.sock_recv(sock, recv_data_len)
         return cloudpickle.loads(recv_data)
     
     def stat(self):
@@ -121,15 +118,25 @@ class PyjyClient(object):
 
         recv_header = sock.recv(8)
         recv_data_len = struct.unpack('q', recv_header)[0]
-        recv_buf = []
-        read_len = 0
-        while read_len < recv_data_len:
-            data = sock.recv(1024)
-            if not data:
-                break
-            read_len += len(data)
-            recv_buf.append(data)
-        sock.close()
-        recv_data = ''.join(recv_buf)
+        recv_data = common.sock_recv(sock, recv_data_len)
+        return cloudpickle.loads(recv_data)
+    
+    def broadcast(self, value):
+        var = common.BroadcastVariable.create(value)
+        self.send_broadcast(var)
+        return var.ref()
+    
+    def send_broadcast(self, var):
+        key_data = cloudpickle.dumps(var.key)
+        value_data = cloudpickle.dumps(var.value)
+        send_data = struct.pack('qqq', 3, len(key_data), len(value_data)) \
+                + key_data + value_data
 
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.host, self.port))
+        sock.sendall(send_data)
+
+        recv_header = sock.recv(8)
+        recv_data_len = struct.unpack('q', recv_header)[0]
+        recv_data = common.sock_recv(sock, recv_data_len)
         return cloudpickle.loads(recv_data)

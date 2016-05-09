@@ -1,4 +1,5 @@
 import threading
+import uuid
 
 class Sem(object):
 
@@ -31,3 +32,21 @@ def sock_recv(sock, length):
         buf.append(s)
         rd += len(s)
     return ''.join(buf)
+
+
+class BroadcastVariable(object):
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+    @staticmethod
+    def create(value):
+        return BroadcastVariable(uuid.uuid4(), value)
+
+    def ref(self):
+        return BroadcastVariableRef(self.key)
+
+
+class BroadcastVariableRef(object):
+    def __init__(self, key):
+        self.key = key

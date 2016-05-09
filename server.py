@@ -23,6 +23,7 @@ class PyjyServer(object):
         server = WrappedThreadingTCPServer((self.host, self.port), PyjyHandler)
         server.worker_sem = common.Sem(self.worker_num)
         server.worker_num = self.worker_num
+        server.broadcast_vars = {}
         server.serve_forever()
 
 
@@ -45,6 +46,8 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
                 self.server.worker_sem.release()
         elif req_type == 2:
             self.do_stat(sock)
+        elif req_type == 3:
+            self.do_recv_broadcast(sock)
         else:
             raise Exception('unrecognized req type: %d' % (req_type, ))
 
@@ -53,6 +56,23 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
         result = {}
         result['free_slot'] = free_slot_num
         result['total_slot'] = self.server.worker_num
+
+        send_data = cloudpickle.dumps(result)
+        send_data_len = len(send_data)
+        sock.sendall(struct.pack('q', send_data_len))
+        sock.sendall(send_data)
+
+    def do_recv_broadcast(self, sock):
+        req_header = common.sock_recv(sock, 16)
+        key_data_len, value_data_len = struct.unpack('qq', req_header)
+        key_data = common.sock_recv(sock, key_data_len)
+        value_data = common.sock_recv(sock, value_data_len)
+        key = cloudpickle.loads(key_data)
+        value = cloudpickle.loads(value_data)
+        self.server.broadcast_vars[key] = value
+        
+        result = {}
+        result['success'] = True
 
         send_data = cloudpickle.dumps(result)
         send_data_len = len(send_data)
@@ -70,6 +90,11 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
         func = cloudpickle.loads(func)
         func_args = cloudpickle.loads(func_args)
         func_kwargs = cloudpickle.loads(func_kwargs)
+
+        # replace broadcast vars
+        for i, e in enumerate(func_args):
+            if type(e) == common.BroadcastVariableRef:
+                func_args[i] = self.server.broadcast_vars[e.key]
 
         if not is_fork:
             result = func(*func_args, **func_kwargs)
