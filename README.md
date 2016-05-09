@@ -38,15 +38,15 @@ client use multi servers:
     def add(x, y):
         return x + y
     
-    # will print 3
-    print cli.execute(add, args=[1, 2])
+    # thread-safe call
+    print cli.execute(add, args=[1, 2]) # will print 3
     
 broadcast variable to cluster:
     
-    # broadcast variable to all nodes
+    # broadcast variable to all nodes, and return a reference object
     ref = cluster.broadcast([1, 2, 3])
     def foo(a):
         return sum(a)
         
-    # will print 6
-    print cli.execute(foo, args=[ref])
+    # pass reference to args, instead of variable itself
+    print cli.execute(foo, args=[ref]) # will print 6
