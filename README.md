@@ -1,5 +1,5 @@
 # pyjy
-Can execute python function on remote server/cluster with simple load balancer.
+A lightweight Python remote execution framework, can execute python function on remote cluster. It supports: load balance, variable broadcast.
 
 TODO list:
 
@@ -29,7 +29,7 @@ client:
     # will print 3
     print cli.execute(add, args=[1, 2])
 
-client use multi servers(multithreading is supported):
+client use multi servers:
 
     from client import PyjyClusterClient
     
