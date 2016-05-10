@@ -48,5 +48,5 @@ broadcast variable to cluster:
     def foo(a):
         return sum(a)
         
-    # pass reference to args, instead of variable itself
+    # pass reference to remote node, instead of whole data
     print cli.execute(foo, args=[ref]) # will print 6
