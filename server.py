@@ -112,18 +112,12 @@ class PyjyHandler(SocketServer.StreamRequestHandler):
                 # avoid exception
                 os._exit(0)
             else: # parent
-                ser_len = struct.unpack('q', os.read(rd, 8))[0]
-                buf = []
-                read_len = 0
-                while read_len < ser_len:
-                    ret = os.read(rd, 1024)
-                    if not ret:
-                        break
-                    buf.append(ret)
-                    read_len += len(ret)
-                ser_result = ''.join(buf)
-                os.close(rd)
-                os.close(wr)
+                try:
+                    ser_len = struct.unpack('q', os.read(rd, 8))[0]
+                    ser_result = common.pipe_recv(rd, ser_len)
+                finally:
+                    os.close(rd)
+                    os.close(wr)
 
         send_data = ser_result
         send_data_len = len(send_data)

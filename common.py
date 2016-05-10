@@ -1,4 +1,5 @@
 import threading
+import os
 import uuid
 
 class Sem(object):
@@ -27,6 +28,18 @@ def sock_recv(sock, length):
     rd = 0
     while rd < length:
         s = sock.recv(length - rd)
+        if len(s) == 0:
+            break
+        buf.append(s)
+        rd += len(s)
+    return ''.join(buf)
+
+
+def pipe_recv(fd, length):
+    buf = []
+    rd = 0
+    while rd < length:
+        s = os.read(fd, length - rd)
         if len(s) == 0:
             break
         buf.append(s)
